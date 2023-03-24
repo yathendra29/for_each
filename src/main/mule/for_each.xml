@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="a0c24c08-480c-4731-9cb9-8da558e3e124" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="for_eachFlow" doc:id="a64016b8-7035-4966-a3fa-c70605707aea" >
+		<http:listener doc:name="Listener" doc:id="950b7663-00c8-4f03-be25-270d29189ad1" config-ref="HTTP_Listener_config" path="/foreach"/>
+		<ee:transform doc:name="Transform Message" doc:id="52d32325-2ad9-44ae-8baf-c9a658ba68ac" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"cricketers":[
+		{
+			"player":"Sachin",
+			"sixes":100
+		},
+		{
+			"player":"Sehwag",
+			"sixes":200
+		},
+		{
+			"player":"Yuvraj",
+			"sixes":199
+		},
+		{
+			"player":"Ganguly",
+			"sixes":250
+		}
+	]
+		
+	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[[]]" doc:name="Set Variable" doc:id="cd41cb70-9ed9-42ff-a3c5-b6b9a59a7432" variableName="List"/>
+		<set-variable value="#[[]]" doc:name="Set Variable" doc:id="7594f810-9772-4670-a97b-64291f63100f" variableName="map"/>
+		<foreach doc:name="For Each" doc:id="e5998dce-88ac-46e9-9ef0-bdabeb42a2cb" collection="#[payload.cricketers]">
+			<logger level="INFO" doc:name="Logger" doc:id="5c5185b3-8341-4156-8b75-ee76cca211fa" message="#[payload]"/>
+			<ee:transform doc:name="Transform Message" doc:id="fde5a58b-167d-4488-8964-67c4d56c70b1" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="List" ><![CDATA[%dw 2.0
+output application/json
+---
+if(payload.sixes >= 200) vars.List + payload.player else vars.List]]></ee:set-variable>
+					<ee:set-variable variableName="map" ><![CDATA[%dw 2.0
+output application/json
+---
+vars.map + {"key":vars.counter ++ "_" ++ payload.player ++ "_" ++ payload.sixes,"value":payload.player}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+			<logger level="INFO" doc:name="Logger" doc:id="a14ac728-99af-4ef7-b63e-6efafb147e94" message="#[vars.resultList]"/>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="062f4171-1425-4384-83e1-741eed5ac153" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Players_With_200_More_Sixes":vars.List map{
+		"name":$
+	},
+	"playersCredits":vars.map map{
+		"playerName":$.value,
+		"PlayerWithSixes":$.key
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
